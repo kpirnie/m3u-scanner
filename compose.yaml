@@ -1,0 +1,66 @@
+---
+# m3u-scanner — Podman Compose
+#
+# Playlist endpoints:
+#   http://<host>:8888/all.m3u
+#   http://<host>:8888/movies.m3u
+#   http://<host>:8888/music.m3u
+#   http://<host>:8888/shows.m3u
+#
+# Health:   http://<host>:8888/health
+# Rescan:   curl -X POST http://<host>:8888/rescan
+
+services:
+  m3u-scanner:
+    image: localhost/m3u-scanner:latest
+    build:
+      context: .
+      dockerfile: Containerfile
+
+    container_name: m3u-scanner
+    restart: unless-stopped
+
+    ports:
+      - "8888:8888"
+
+    volumes:
+      # Media library — read-only
+      - /media/kpirnie/media:/media:ro
+
+      # Persistent cache database — survives container restarts/rebuilds
+      - /home/kpirnie/m3u-cache:/data
+
+      # ffprobe — mount from host for video duration support
+      # Find path with: which ffprobe
+      - /usr/local/bin/ffprobe:/usr/local/bin/ffprobe:ro
+
+    environment:
+      # ── Scanning ──────────────────────────────────────────────────────────
+      SCAN_PATH: /media
+      SCAN_TYPES: movies music shows
+      SCAN_NFO: "true"
+
+      # ── Output ────────────────────────────────────────────────────────────
+      # Rewrite file paths to HTTP URLs — required for network playback
+      BASE_URL: "http://192.168.2.100:8888"
+
+      # ── Server ────────────────────────────────────────────────────────────
+      SERVE_PORT: "8888"
+
+      # ── Watcher ───────────────────────────────────────────────────────────
+      # Seconds of quiet after fs events before rescanning
+      DEBOUNCE_SECONDS: "30"
+
+      # ── Cron ──────────────────────────────────────────────────────────────
+      # Full rescan schedule — heartbeat fallback for the watcher
+      # Shortcuts: @hourly @daily @weekly @monthly
+      CRON_SCHEDULE: "0 3 * * *"
+      TZ: America/New_York
+
+      # ── ffprobe ───────────────────────────────────────────────────────────
+      FFPROBE_PATH: /usr/local/bin/ffprobe
+
+      # ── Cache ─────────────────────────────────────────────────────────────
+      # SQLite database path inside the container
+      CACHE_PATH: /data/cache.db
+
