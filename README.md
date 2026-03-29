@@ -1,4 +1,14 @@
-# m3u-scanner
+# KPTV m3u-scanner
+
+[![Build main](https://github.com/kpirnie/m3u-scanner/actions/workflows/build.yaml/badge.svg?branch=main)](https://github.com/kpirnie/m3u-scanner/pkgs/container/m3u-scanner)
+[![Build develop](https://github.com/kpirnie/m3u-scanner/actions/workflows/build.yaml/badge.svg?branch=develop)](https://github.com/kpirnie/m3u-scanner/pkgs/container/m3u-scanner)
+[![License: MIT](https://img.shields.io/github/license/kpirnie/m3u-scanner)](https://github.com/kpirnie/m3u-scanner/blob/main/LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.26.1-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Last Commit](https://img.shields.io/github/last-commit/kpirnie/m3u-scanner)](https://github.com/kpirnie/m3u-scanner/commits/main)
+[![GitHub Issues](https://img.shields.io/github/issues/kpirnie/m3u-scanner)](https://github.com/kpirnie/m3u-scanner/issues)
+[![Image Size (latest)](https://ghcr-badge.egpl.dev/kpirnie/m3u-scanner/size?tag=latest&label=image%20size)](https://github.com/kpirnie/m3u-scanner/pkgs/container/m3u-scanner)
+[![Image Size (dev)](https://ghcr-badge.egpl.dev/kpirnie/m3u-scanner/size?tag=develop&label=image%20size%20(dev))](https://github.com/kpirnie/m3u-scanner/pkgs/container/m3u-scanner)
+[![kevinpirnie.com](https://img.shields.io/badge/site-kevinpirnie.com-43819c?labelColor=000d2d)](https://kevinpirnie.com/)
 
 Recursive media library scanner that serves extended M3U playlists over HTTP.
 
@@ -14,6 +24,7 @@ files — everything else loads instantly from the SQLite cache.
 - **SQLite cache** — unchanged files skip re-parsing; rescans go from minutes to seconds
 - **In-memory playlists** — served directly from RAM, zero disk I/O at request time
 - **Per-type playlists** — separate endpoints for movies, music, shows + a combined all
+- **Media file serving** — files served directly over HTTP, no separate web server needed
 - **Filesystem watcher** — debounced rescan fires automatically when files change
 - **Cron heartbeat** — scheduled full rescan fallback (default: 3 AM daily)
 - **ffprobe integration** — mount from host for accurate video duration
@@ -63,11 +74,11 @@ podman run -d \
   --restart unless-stopped \
   -p 8888:8888 \
   -v /mnt/media:/media:ro \
-  -v m3u-cache:/data \
+  -v /home/user/m3u-scanner/cache:/data \
   -v /usr/local/bin/ffprobe:/usr/local/bin/ffprobe:ro \
   -e SCAN_PATH=/media \
   -e SCAN_TYPES="movies music shows" \
-  -e BASE_URL="http://kp-media:8888" \
+  -e BASE_URL="http://your-server:8888" \
   -e CACHE_PATH=/data/cache.db \
   -e TZ="America/New_York" \
   localhost/m3u-scanner:latest
@@ -83,12 +94,16 @@ podman run -d \
 | `/movies.m3u` | GET | Movies only |
 | `/music.m3u` | GET | Music only |
 | `/shows.m3u` | GET | Shows only |
-| `/health` | GET | JSON status, entry count, last scan, ffprobe, playlists |
+| `/media/...` | GET | Direct media file serving |
+| `/health` | GET | JSON: status, entry count, last scan, ffprobe, playlists |
 | `/rescan` | POST | Trigger immediate full rescan |
 
 ```bash
-curl http://kp-media:8888/health
-curl -X POST http://kp-media:8888/rescan
+# Health check
+curl http://your-server:8888/health
+
+# Force rescan
+curl -X POST http://your-server:8888/rescan
 ```
 
 ---
@@ -101,13 +116,23 @@ curl -X POST http://kp-media:8888/rescan
 | `SCAN_TYPES` | `movies music shows` | Space-separated: `music` `images` `movies` `shows` |
 | `SCAN_NFO` | `false` | Parse Jellyfin `.nfo` sidecars for episode titles |
 | `BASE_URL` | *(empty)* | Rewrites file paths to HTTP URLs in M3U output |
-| `PLAYLIST_NAME` | `playlist.m3u` | Base name (unused — endpoints are fixed per type) |
 | `SERVE_PORT` | `8888` | HTTP listen port |
 | `DEBOUNCE_SECONDS` | `30` | Seconds of quiet after fs events before rescanning |
 | `CRON_SCHEDULE` | `0 3 * * *` | 5-field cron for scheduled rescans |
 | `TZ` | `UTC` | Timezone for cron scheduling |
 | `FFPROBE_PATH` | `/usr/local/bin/ffprobe` | Path to ffprobe inside the container |
 | `CACHE_PATH` | `/data/cache.db` | SQLite cache database path |
+
+### `CRON_SCHEDULE` syntax
+
+Standard 5-field: `minute hour dom month dow`
+
+```
+0 3 * * *     → 3:00 AM daily (default)
+0 */6 * * *   → every 6 hours
+@daily        → midnight daily
+@hourly       → top of every hour
+```
 
 ---
 
@@ -117,33 +142,34 @@ The SQLite cache stores every scanned entry with its `mtime` and `size`.
 On each rescan, only files whose `mtime` or `size` has changed are re-parsed
 and re-enriched. Everything else loads from the database instantly.
 
-The cache lives at `CACHE_PATH` (default `/data/cache.db`). Mount a named
-volume at `/data` to persist it across container restarts and rebuilds:
+Mount a host directory at `/data` to persist the cache across restarts:
 
 ```yaml
 volumes:
-  - m3u-cache:/data
+  - /home/user/m3u-scanner/cache:/data
 ```
 
-To force a full cold rescan, delete the database file and restart:
+To force a full cold rescan:
 
 ```bash
-podman exec m3u-scanner rm /data/cache.db
-curl -X POST http://kp-media:8888/rescan
+rm /home/user/m3u-scanner/cache/cache.db
+curl -X POST http://your-server:8888/rescan
 ```
 
 ---
 
 ## ffprobe
 
-Mount from host — not baked into the image:
+Not baked into the image — mount from the host:
 
 ```yaml
 volumes:
   - /usr/local/bin/ffprobe:/usr/local/bin/ffprobe:ro
 ```
 
-**Without ffprobe:** audio duration from go-taglib (accurate), video duration = `-1`.
+Find your path with `which ffprobe`. Install with `sudo apt install ffmpeg` if missing.
+
+**Without ffprobe:** audio duration comes from go-taglib (accurate), video duration = `-1`.
 
 ---
 
@@ -168,16 +194,23 @@ m3u-scanner/
 ├── go.mod
 ├── Containerfile
 ├── compose.yaml
+├── LICENSE
 └── internal/
     ├── cache/       — SQLite cache (ncruces/go-sqlite3, no CGO)
     ├── config/      — env var loading + validation
-    ├── cron/        — minimal 5-field cron scheduler
+    ├── cron/        — minimal 5-field cron scheduler (no external dep)
     ├── extensions/  — type→extension map + known subfolder names
     ├── meta/        — ffprobe + go-taglib + NFO dispatcher
     ├── models/      — MediaEntry struct, sort key, media type enum
     ├── parser/      — path-first metadata extraction
     ├── scanner/     — recursive walker + cache-aware scan loop
-    ├── server/      — net/http server, RWMutex in-memory playlists
+    ├── server/      — net/http: playlist serving, media file serving, health, rescan
     ├── watcher/     — fsnotify + debounce + recursive dir tracking
     └── writer/      — builds M3U []byte from sorted entries
 ```
+
+---
+
+## License
+
+MIT © 2026 [Kevin Pirnie](https://kevinpirnie.com/)
