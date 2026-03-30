@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8888:8888"
+      - 8888:8888
 
     volumes:
       # Media library — read-only
@@ -43,9 +43,6 @@ services:
       # ── Output ────────────────────────────────────────────────────────────
       # Rewrite file paths to HTTP URLs — required for network playback
       BASE_URL: "http://192.168.2.100:8888"
-
-      # ── Server ────────────────────────────────────────────────────────────
-      SERVE_PORT: "8888"
 
       # ── Watcher ───────────────────────────────────────────────────────────
       # Seconds of quiet after fs events before rescanning
