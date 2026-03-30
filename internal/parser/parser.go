@@ -78,7 +78,7 @@ func Music(filePath, musicRoot string) *models.MediaEntry {
 	return &models.MediaEntry{
 		Path:       filePath,
 		MediaType:  "music",
-		GroupTitle: "music",
+		GroupTitle: "Music/" + genre + "/" + artist,
 		TVGName:    display,
 		Display:    display,
 		Duration:   -1,
@@ -121,7 +121,7 @@ func Show(filePath, showsRoot string) *models.MediaEntry {
 	return &models.MediaEntry{
 		Path:       filePath,
 		MediaType:  "shows",
-		GroupTitle: "shows",
+		GroupTitle: "Shows/" + series,
 		TVGName:    display,
 		Display:    display,
 		Duration:   -1,
@@ -151,7 +151,7 @@ func Movie(filePath string) *models.MediaEntry {
 	return &models.MediaEntry{
 		Path:       filePath,
 		MediaType:  "movies",
-		GroupTitle: "movies",
+		GroupTitle: "Movies",
 		TVGName:    display,
 		Display:    display,
 		Duration:   -1,
@@ -167,7 +167,7 @@ func Image(filePath string) *models.MediaEntry {
 	return &models.MediaEntry{
 		Path:       filePath,
 		MediaType:  "images",
-		GroupTitle: "images",
+		GroupTitle: "Images",
 		TVGName:    title,
 		Display:    title,
 		Duration:   -1,
