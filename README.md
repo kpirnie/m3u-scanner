@@ -1,14 +1,12 @@
 # KPTV m3u-scanner
 
-[![Build main](https://github.com/kpirnie/m3u-scanner/actions/workflows/build.yaml/badge.svg?branch=main)](https://github.com/kpirnie/m3u-scanner/pkgs/container/m3u-scanner)
-[![Build develop](https://github.com/kpirnie/m3u-scanner/actions/workflows/build.yaml/badge.svg?branch=develop)](https://github.com/kpirnie/m3u-scanner/pkgs/container/m3u-scanner)
+[![Build Main](https://img.shields.io/github/actions/workflow/status/kpirnie/m3u-scanner/build.yaml?branch=main&label=Main&logo=github)](https://github.com/kpirnie/m3u-scanner/actions?query=workflow%3A%22Build+and+Push+Docker+Image%22+branch%3Amain)
+[![Build Develop](https://img.shields.io/github/actions/workflow/status/kpirnie/m3u-scanner/build.yaml?branch=develop&label=Develop&logo=github)](https://github.com/kpirnie/m3u-scanner/actions?query=workflow%3A%22Build+and+Push+Docker+Image%22+branch%3Adevelop)
 [![License: MIT](https://img.shields.io/github/license/kpirnie/m3u-scanner)](https://github.com/kpirnie/m3u-scanner/blob/main/LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.26.1-00ADD8?logo=go&logoColor=white)](https://go.dev)
-[![Last Commit](https://img.shields.io/github/last-commit/kpirnie/m3u-scanner)](https://github.com/kpirnie/m3u-scanner/commits/main)
+[![Go Version](https://img.shields.io/badge/Go-1.26.1-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![GitHub Issues](https://img.shields.io/github/issues/kpirnie/m3u-scanner)](https://github.com/kpirnie/m3u-scanner/issues)
-[![Image Size (latest)](https://ghcr-badge.egpl.dev/kpirnie/m3u-scanner/size?tag=latest&label=image%20size)](https://github.com/kpirnie/m3u-scanner/pkgs/container/m3u-scanner)
-[![Image Size (dev)](https://ghcr-badge.egpl.dev/kpirnie/m3u-scanner/size?tag=develop&label=image%20size%20(dev))](https://github.com/kpirnie/m3u-scanner/pkgs/container/m3u-scanner)
-[![kevinpirnie.com](https://img.shields.io/badge/site-kevinpirnie.com-43819c?labelColor=000d2d)](https://kevinpirnie.com/)
+[![www](https://img.shields.io/badge/www-kevinpirnie.com-blue?logo=google-chrome&logoColor=white)](https://kevinpirnie.com)
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/bd4Qan3PaN)
 
 Recursive media library scanner that serves extended M3U playlists over HTTP.
 
