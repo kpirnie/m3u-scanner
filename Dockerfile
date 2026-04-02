@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -trimpath -ldflags="-s -w" -o m3u-scanner .
 
 # ── Stage 2: Runtime ───────────────────────────────────────────────────────────
-FROM docker.io/library/debian:bookworm-slim
+FROM docker.io/library/debian:trixie-slim
 
 LABEL org.opencontainers.image.title="m3u-scanner"
 LABEL org.opencontainers.image.description="Recursive media library M3U playlist server"
