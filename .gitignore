@@ -1,3 +1,6 @@
 m3u-scanner
 *.exe
 go.sum
+internal/server/admin-concat.js
+internal/server/static/admin-concat.js
+node_modules/

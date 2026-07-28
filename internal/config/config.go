@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Config holds all runtime configuration for the scanner/server.
@@ -23,9 +22,6 @@ type Config struct {
 
 	// Server
 	ServePort int
-
-	// Watcher
-	DebounceSeconds int
 
 	// Cron
 	CronSchedule string
@@ -80,21 +76,11 @@ func Load() (*Config, error) {
 	c.ServePort = port
 	c.ServeAddr = fmt.Sprintf(":%d", c.ServePort)
 
-	debounce, err := envInt("DEBOUNCE_SECONDS", 30)
-	if err != nil {
-		return nil, fmt.Errorf("DEBOUNCE_SECONDS: %w", err)
-	}
-	c.DebounceSeconds = debounce
-
-	c.CronSchedule = envOr("CRON_SCHEDULE", "0 3 * * *")
+	c.CronSchedule = envOr("CRON_SCHEDULE", "*/30 * * * *")
 	c.FFProbePath = envOr("FFPROBE_PATH", "/usr/local/bin/ffprobe")
 	c.CachePath = envOr("CACHE_PATH", "/data/cache.db")
 
 	return c, nil
-}
-
-func (c *Config) Debounce() time.Duration {
-	return time.Duration(c.DebounceSeconds) * time.Second
 }
 
 func envOr(key, fallback string) string {

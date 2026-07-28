@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kpirnie/m3u-scanner/internal/models"
+	"m3u-scanner/internal/models"
 	"github.com/rwcarlsen/goexif/exif"
 )
 

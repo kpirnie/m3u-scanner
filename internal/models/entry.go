@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+// Person represents a credited individual attached to a media entry.
+type Person struct {
+	Name string `json:"name"`
+	Role string `json:"role,omitempty"`
+}
+
 // MediaEntry holds all metadata for a single media file, derived primarily
 // from the folder structure and enriched by tag/ffprobe libraries.
 type MediaEntry struct {
@@ -22,7 +28,6 @@ type MediaEntry struct {
 
 	// ── Music ─────────────────────────────────────────────────────────────────
 	Artist string
-	Genre  string
 	Album  string
 	Disc   int // 0 = not set
 	Track  int // 0 = not set
@@ -32,6 +37,30 @@ type MediaEntry struct {
 	Season       int // 0 = not set
 	Episode      int // 0 = not set
 	EpisodeTitle string
+
+	// ── Extended metadata ─────────────────────────────────────────────────────
+	// Sourced from NFO sidecars; all optional.
+	Title        string  // canonical title, independent of filename
+	SortTitle    string  // title used for ordering when it differs
+	Plot         string  // long synopsis
+	Tagline      string  // short one-liner
+	Poster       string  // artwork URL or path; written as tvg-logo=
+	Fanart       string  // backdrop URL or path
+	Rating       float64 // 0 = not set
+	CriticRating int     // 0 = not set
+	MPAA         string  // content rating, e.g. "PG-13"
+	Country      string
+	Premiered    string // YYYY-MM-DD
+	IMDBID       string
+	TMDBID       string
+	TVDBID       string
+	Collection   string   // box set / collection name
+	Genres       []string // multi-value; replaces the former single Genre
+	Studios      []string
+	Tags         []string
+	Directors    []string
+	Writers      []string
+	Cast         []Person
 
 	// ── Sort ──────────────────────────────────────────────────────────────────
 	sortKey string // computed once, used for stable ordering

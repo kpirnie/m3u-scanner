@@ -1,5 +1,20 @@
-# ── Stage 1: Build ────────────────────────────────────────────────────────────
-FROM docker.io/library/golang:1.26.1-alpine AS builder
+# ── Stage 1: Assets ───────────────────────────────────────────────────────────
+FROM --platform=$BUILDPLATFORM docker.io/library/node:26-alpine AS assets
+
+WORKDIR /build
+
+COPY package.json tailwind.config.js ./
+RUN npm install
+
+COPY internal/server/static ./internal/server/static
+
+RUN npm run build && npm run clean
+
+# ── Stage 2: Build ────────────────────────────────────────────────────────────
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.5-alpine AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
 
 RUN apk add --no-cache git
 
@@ -7,12 +22,15 @@ WORKDIR /build
 
 COPY . .
 
+COPY --from=assets /build/internal/server/static/admin.css ./internal/server/static/admin.css
+COPY --from=assets /build/internal/server/static/admin.js  ./internal/server/static/admin.js
+
 RUN go mod download && go mod tidy
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-s -w" -o m3u-scanner .
 
-# ── Stage 2: Runtime ───────────────────────────────────────────────────────────
+# ── Stage 3: Runtime ───────────────────────────────────────────────────────────
 FROM docker.io/library/debian:trixie-slim
 
 LABEL org.opencontainers.image.title="m3u-scanner"

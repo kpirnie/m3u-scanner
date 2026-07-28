@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kpirnie/m3u-scanner/internal/models"
+	"m3u-scanner/internal/models"
 )
 
 // ── Compiled regexes ──────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ func Music(filePath, musicRoot string) *models.MediaEntry {
 		Display:    display,
 		Duration:   -1,
 		Artist:     artist,
-		Genre:      genre,
+		Genres:     nonEmpty(genre),
 		Album:      album,
 		Disc:       disc,
 		Track:      track,
@@ -217,4 +217,12 @@ func cleanGenericTitle(stem string) string {
 		}
 	}
 	return strings.Join(fields, " ")
+}
+
+// nonEmpty returns a single-element slice, or nil when the value is blank.
+func nonEmpty(s string) []string {
+	if s == "" {
+		return nil
+	}
+	return []string{s}
 }

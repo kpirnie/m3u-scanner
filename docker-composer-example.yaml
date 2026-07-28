@@ -24,8 +24,8 @@ services:
       - 8888:8888
 
     volumes:
-      # Media library — read-only
-      - /media/kpirnie/media:/media:ro
+      # Media library — read/write so you can maintain the Meta info
+      - /media/kpirnie/media:/media:rw
 
       # Persistent cache database — survives container restarts/rebuilds
       - /home/kpirnie/m3u-cache:/data

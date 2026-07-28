@@ -14,11 +14,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kpirnie/m3u-scanner/internal/cache"
-	"github.com/kpirnie/m3u-scanner/internal/extensions"
-	"github.com/kpirnie/m3u-scanner/internal/meta"
-	"github.com/kpirnie/m3u-scanner/internal/models"
-	"github.com/kpirnie/m3u-scanner/internal/parser"
+	"m3u-scanner/internal/cache"
+	"m3u-scanner/internal/extensions"
+	"m3u-scanner/internal/meta"
+	"m3u-scanner/internal/models"
+	"m3u-scanner/internal/parser"
 )
 
 // Scanner performs recursive media file discovery.
@@ -41,9 +41,16 @@ func New(root string, types []string, enrichMeta, parseNFO bool, c *cache.DB) *S
 	}
 }
 
-// Scan runs a full scan and returns a sorted slice of entries.
-// Files unchanged since the last scan are loaded from the cache.
+// Scan runs a full scan across every configured media type.
 func (s *Scanner) Scan() ([]*models.MediaEntry, error) {
+	return s.ScanTypes(s.Types)
+}
+
+// ScanTypes scans only the supplied media types and returns their sorted
+// entries. Files unchanged since the last scan are loaded from the cache.
+// Cache eviction is scoped to the scanned types, so entries for types not
+// included here are left intact.
+func (s *Scanner) ScanTypes(types []string) ([]*models.MediaEntry, error) {
 	// Load entire cache upfront — one DB round trip
 	cached, err := s.Cache.LoadAll()
 	if err != nil {
@@ -53,8 +60,9 @@ func (s *Scanner) Scan() ([]*models.MediaEntry, error) {
 
 	var all []*models.MediaEntry
 	activePaths := make(map[string]struct{})
+	var scannedIDs []int
 
-	for _, t := range s.Types {
+	for _, t := range types {
 		typeRoot, err := s.resolveTypeRoot(t)
 		if err != nil {
 			log.Printf("[scanner] %s — skipping", err)
@@ -72,10 +80,11 @@ func (s *Scanner) Scan() ([]*models.MediaEntry, error) {
 		for p := range active {
 			activePaths[p] = struct{}{}
 		}
+		scannedIDs = append(scannedIDs, models.MediaTypeToInt[t])
 	}
 
-	// Evict deleted files from the cache
-	if err := s.Cache.DeleteMissing(activePaths); err != nil {
+	// Evict deleted files from the cache, scoped to what we actually scanned
+	if err := s.Cache.DeleteMissing(activePaths, scannedIDs); err != nil {
 		log.Printf("[scanner] cache eviction error: %v", err)
 	}
 
@@ -84,6 +93,63 @@ func (s *Scanner) Scan() ([]*models.MediaEntry, error) {
 	})
 
 	return all, nil
+}
+
+// ScanPath re-parses and re-enriches a single file, writing the result to the
+// cache. Used after a metadata edit so one changed sidecar does not require a
+// walk of the entire library. Returns the rebuilt entry.
+func (s *Scanner) ScanPath(path string) (*models.MediaEntry, error) {
+	mediaType, typeRoot, err := s.resolveTypeForPath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	entry := s.parseFile(path, mediaType, typeRoot)
+	if entry == nil {
+		return nil, fmt.Errorf("could not parse %s as %s", path, mediaType)
+	}
+
+	if s.EnrichMeta {
+		meta.Enrich(entry, s.ParseNFO)
+	}
+
+	mtime, size, err := cache.StatFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.Cache.Upsert(mtime, size, entry); err != nil {
+		return nil, err
+	}
+
+	return entry, nil
+}
+
+// resolveTypeForPath determines which configured media type a path belongs to
+// by matching it against each type's resolved root and extension set.
+func (s *Scanner) resolveTypeForPath(path string) (string, string, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", "", err
+	}
+
+	ext := strings.ToLower(filepath.Ext(abs))
+
+	for _, t := range s.Types {
+		typeRoot, err := s.resolveTypeRoot(t)
+		if err != nil {
+			continue
+		}
+		rel, err := filepath.Rel(typeRoot, abs)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			continue
+		}
+		if extensions.ByType[t][ext] {
+			return t, typeRoot, nil
+		}
+	}
+
+	return "", "", fmt.Errorf("path is not under any configured media root: %s", abs)
 }
 
 // ── Private ───────────────────────────────────────────────────────────────────

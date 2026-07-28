@@ -3,7 +3,7 @@ package meta
 import (
 	"log"
 
-	"github.com/kpirnie/m3u-scanner/internal/models"
+	"m3u-scanner/internal/models"
 )
 
 // EnrichVideo populates Duration on a movie or show entry.

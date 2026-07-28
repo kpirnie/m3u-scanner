@@ -1,0 +1,17 @@
+{
+    "name": "m3u-scanner-admin",
+    "version": "1.0.0",
+    "description": "m3u-scanner Admin Interface",
+    "scripts": {
+        "build:css": "tailwindcss -i ./internal/server/static/admin-source.css -o ./internal/server/static/admin.css --minify",
+        "build:js:concat": "cat internal/server/static/src/utils.js internal/server/static/src/modals.js internal/server/static/src/entries.js internal/server/static/src/editor.js internal/server/static/src/core.js > internal/server/static/admin-concat.js",
+        "build:js:minify": "terser internal/server/static/admin-concat.js -o internal/server/static/admin.js -c -m",
+        "build:js": "npm run build:js:concat && npm run build:js:minify",
+        "build": "npm run build:css && npm run build:js",
+        "clean": "rm -f internal/server/static/admin-concat.js"
+    },
+    "devDependencies": {
+        "tailwindcss": "^3.4.1",
+        "terser": "^5.36.0"
+    }
+}

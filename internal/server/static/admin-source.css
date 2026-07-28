@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+}
+
+@layer components {
+    .notification {
+        @apply fixed top-4 right-4 z-[9999] max-w-sm;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .spinner {
+        @apply border-4 border-white/30 border-t-white rounded-full w-10 h-10;
+        animation: spin 1s linear infinite;
+    }
+
+    .modal {
+        @apply hidden fixed inset-0 z-[9998] bg-black/75 items-center justify-center p-4;
+    }
+
+    .modal.active {
+        @apply flex;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .modal-content {
+        animation: slideUp 0.3s ease-out;
+    }
+
+    .tab-content>div {
+        @apply hidden;
+    }
+
+    .tab-content>div.active {
+        @apply block;
+    }
+
+    .stat-card {
+        @apply bg-gradient-to-br from-kptv-blue to-kptv-blue-light text-white cursor-pointer;
+    }
+
+    .stat-card-success {
+        @apply bg-gradient-to-br from-green-700 to-green-600 text-white cursor-pointer;
+    }
+
+    .stat-card-warning {
+        @apply bg-gradient-to-br from-orange-700 to-orange-600 text-white cursor-pointer;
+    }
+
+    .stat-card-yellow {
+        @apply bg-gradient-to-br from-yellow-700 to-yellow-600 text-white cursor-pointer;
+    }
+
+    .entry-item {
+        @apply bg-kptv-gray border border-kptv-border rounded-lg p-4 mb-3 transition-all duration-200;
+    }
+
+    .entry-item:hover {
+        @apply border-kptv-blue -translate-y-0.5 shadow-xl;
+    }
+
+    .status-indicator {
+        @apply w-3 h-3 rounded-full inline-block mr-2;
+    }
+
+    .status-active {
+        @apply bg-green-600;
+        box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+    }
+
+    .status-warning {
+        @apply bg-orange-600;
+        box-shadow: 0 0 8px rgba(255, 152, 0, 0.5);
+    }
+
+    .status-error {
+        @apply bg-red-600;
+        box-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
+    }
+
+    .metric-row {
+        @apply flex justify-between items-center py-2 border-b border-kptv-border;
+    }
+
+    .metric-row:last-child {
+        @apply border-b-0;
+    }
+
+    .stat-badge {
+        @apply bg-black text-gray-300 text-xs px-2 py-1 border border-kptv-border rounded;
+    }
+
+    .form-label {
+        @apply block text-sm font-medium text-gray-300 mb-1;
+    }
+
+    .form-input {
+        @apply w-full bg-kptv-darker border border-kptv-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:border-kptv-blue-light transition-colors;
+    }
+
+    .form-textarea {
+        @apply w-full bg-kptv-darker border border-kptv-border rounded px-3 py-2 text-gray-100 focus:outline-none focus:border-kptv-blue-light transition-colors resize-y min-h-[6rem];
+    }
+
+    .btn {
+        @apply px-4 py-2 rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-primary {
+        @apply btn bg-kptv-blue hover:bg-kptv-blue-light text-white;
+    }
+
+    .btn-secondary {
+        @apply btn bg-kptv-gray-light hover:bg-kptv-border text-gray-200;
+    }
+
+    .btn-danger {
+        @apply btn bg-red-700 hover:bg-red-600 text-white;
+    }
+
+    .chip {
+        @apply inline-flex items-center gap-1 bg-kptv-gray-light border border-kptv-border rounded-full px-3 py-1 text-sm text-gray-200;
+    }
+
+    .in-totop {
+        @apply fixed right-6 bottom-6 w-12 h-12 bg-orange-600 rounded-full flex items-center justify-center text-white text-lg opacity-0 transition-opacity;
+    }
+
+    .in-totop.visible {
+        @apply opacity-100;
+    }
+}
+
+@layer utilities {
+    .text-truncate {
+        @apply overflow-hidden text-ellipsis whitespace-nowrap;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}

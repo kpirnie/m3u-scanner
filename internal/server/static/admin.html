@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-kptv-darker">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>m3u-scanner — Admin</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+
+<body class="bg-kptv-darker text-gray-100 min-h-screen">
+
+    <header class="bg-kptv-dark border-b border-kptv-border sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <svg class="w-8 h-8 text-kptv-blue-light" fill="none" stroke="currentColor" stroke-width="2"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 9l5 3-5 3V9z" />
+                </svg>
+                <div>
+                    <h1 class="text-lg font-semibold leading-tight">m3u-scanner</h1>
+                    <p class="text-xs text-gray-400">Media metadata manager</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="btn-rescan-type" class="btn-secondary flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Rescan Tab</span>
+                </button>
+                <button id="btn-rescan-all" class="btn-primary flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Rescan All</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="stat-card rounded-lg p-4">
+                <div class="text-xs uppercase tracking-wide opacity-80">Entries</div>
+                <div id="stat-entries" class="text-2xl font-bold mt-1">—</div>
+            </div>
+            <div class="stat-card-success rounded-lg p-4">
+                <div class="text-xs uppercase tracking-wide opacity-80">Showing</div>
+                <div id="stat-showing" class="text-2xl font-bold mt-1">—</div>
+            </div>
+            <div class="stat-card-yellow rounded-lg p-4">
+                <div class="text-xs uppercase tracking-wide opacity-80">Last Scan</div>
+                <div id="stat-lastscan" class="text-sm font-semibold mt-2">—</div>
+            </div>
+            <div class="stat-card-warning rounded-lg p-4">
+                <div class="text-xs uppercase tracking-wide opacity-80">ffprobe</div>
+                <div id="stat-ffprobe" class="text-2xl font-bold mt-1">—</div>
+            </div>
+        </div>
+
+        <div class="bg-kptv-dark border border-kptv-border rounded-lg p-4 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center gap-4">
+
+                <div class="flex gap-1 bg-kptv-darker rounded-lg p-1" id="type-tabs">
+                    <button class="tab-btn px-4 py-2 rounded text-sm font-medium transition-colors bg-kptv-blue text-white"
+                        data-type="">All</button>
+                    <button class="tab-btn px-4 py-2 rounded text-sm font-medium transition-colors text-gray-400 hover:text-gray-100"
+                        data-type="movies">Movies</button>
+                    <button class="tab-btn px-4 py-2 rounded text-sm font-medium transition-colors text-gray-400 hover:text-gray-100"
+                        data-type="shows">Shows</button>
+                    <button class="tab-btn px-4 py-2 rounded text-sm font-medium transition-colors text-gray-400 hover:text-gray-100"
+                        data-type="music">Music</button>
+                    <button class="tab-btn px-4 py-2 rounded text-sm font-medium transition-colors text-gray-400 hover:text-gray-100"
+                        data-type="images">Images</button>
+                </div>
+
+                <div class="relative flex-1">
+                    <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" fill="none"
+                        stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input id="search" type="search" placeholder="Search titles, artists, series…"
+                        class="form-input pl-10">
+                </div>
+
+                <select id="page-size" class="form-input w-auto">
+                    <option value="50">50</option>
+                    <option value="100" selected>100</option>
+                    <option value="250">250</option>
+                    <option value="500">500</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="entry-list" class="space-y-0"></div>
+
+        <div id="pagination" class="flex items-center justify-between mt-6 hidden">
+            <button id="btn-prev" class="btn-secondary">Previous</button>
+            <span id="page-info" class="text-sm text-gray-400"></span>
+            <button id="btn-next" class="btn-secondary">Next</button>
+        </div>
+
+    </main>
+
+    <div id="edit-modal" class="modal">
+        <div
+            class="modal-content bg-kptv-dark border border-kptv-border rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+
+            <div class="flex items-center justify-between px-6 py-4 border-b border-kptv-border">
+                <div class="min-w-0">
+                    <h2 id="edit-title" class="text-lg font-semibold text-truncate">Edit Metadata</h2>
+                    <p id="edit-nfopath" class="text-xs text-gray-500 text-truncate mt-0.5"></p>
+                </div>
+                <button data-close-modal="edit-modal" class="text-gray-400 hover:text-gray-100 p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div id="edit-body" class="overflow-y-auto px-6 py-4 flex-1"></div>
+
+            <div class="flex items-center justify-between px-6 py-4 border-t border-kptv-border">
+                <div class="flex gap-2">
+                    <button id="btn-entry-rescan" class="btn-secondary flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Re-read Sidecar</span>
+                    </button>
+                    <button id="btn-write-tags" class="btn-secondary hidden flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        <span>Write File Tags</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notifications"></div>
+
+    <script src="admin.js"></script>
+</body>
+
+</html>

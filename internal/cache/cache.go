@@ -12,15 +12,16 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 
-	"github.com/kpirnie/m3u-scanner/internal/models"
+	"m3u-scanner/internal/models"
 )
 
-const schemaVersion = 1
+const schemaVersion = 2
 
 // DB wraps a SQLite connection and exposes cache operations.
 type DB struct {
@@ -67,8 +68,12 @@ func (c *DB) LoadAll() (map[string]*CachedFile, error) {
 	rows, err := c.db.Query(`SELECT
 		path, mtime, size, media_type_id,
 		duration, year, display, tvg_name, group_title,
-		artist, genre, album, disc, track,
-		series, season, episode, episode_title
+		artist, album, disc, track,
+		series, season, episode, episode_title,
+		title, sort_title, plot, tagline, poster, fanart,
+		rating, critic_rating, mpaa, country, premiered,
+		imdb_id, tmdb_id, tvdb_id, collection,
+		genres, studios, tags, cast_members, directors, writers
 	FROM entries`)
 	if err != nil {
 		return nil, err
@@ -83,16 +88,30 @@ func (c *DB) LoadAll() (map[string]*CachedFile, error) {
 			mediaTypeID                        int
 			duration                           int
 			year                               sql.NullString
-			artist, genre, album               sql.NullString
+			artist, album                      sql.NullString
 			disc, track                        sql.NullInt64
 			series, episodeTitle               sql.NullString
 			season, episode                    sql.NullInt64
+
+			title, sortTitle, plot, tagline    sql.NullString
+			poster, fanart                     sql.NullString
+			rating                             sql.NullFloat64
+			criticRating                       sql.NullInt64
+			mpaa, country, premiered           sql.NullString
+			imdbID, tmdbID, tvdbID, collection sql.NullString
+			genresJSON, studiosJSON, tagsJSON  sql.NullString
+			castJSON, directorsJSON            sql.NullString
+			writersJSON                        sql.NullString
 		)
 		if err := rows.Scan(
 			&path, &mtime, &size, &mediaTypeID,
 			&duration, &year, &display, &tvgName, &groupTitle,
-			&artist, &genre, &album, &disc, &track,
+			&artist, &album, &disc, &track,
 			&series, &season, &episode, &episodeTitle,
+			&title, &sortTitle, &plot, &tagline, &poster, &fanart,
+			&rating, &criticRating, &mpaa, &country, &premiered,
+			&imdbID, &tmdbID, &tvdbID, &collection,
+			&genresJSON, &studiosJSON, &tagsJSON, &castJSON, &directorsJSON, &writersJSON,
 		); err != nil {
 			log.Printf("[cache] scan error: %v", err)
 			continue
@@ -108,7 +127,6 @@ func (c *DB) LoadAll() (map[string]*CachedFile, error) {
 			Duration:     duration,
 			Year:         year.String,
 			Artist:       artist.String,
-			Genre:        genre.String,
 			Album:        album.String,
 			Disc:         int(disc.Int64),
 			Track:        int(track.Int64),
@@ -116,7 +134,29 @@ func (c *DB) LoadAll() (map[string]*CachedFile, error) {
 			Season:       int(season.Int64),
 			Episode:      int(episode.Int64),
 			EpisodeTitle: episodeTitle.String,
+			Title:        title.String,
+			SortTitle:    sortTitle.String,
+			Plot:         plot.String,
+			Tagline:      tagline.String,
+			Poster:       poster.String,
+			Fanart:       fanart.String,
+			Rating:       rating.Float64,
+			CriticRating: int(criticRating.Int64),
+			MPAA:         mpaa.String,
+			Country:      country.String,
+			Premiered:    premiered.String,
+			IMDBID:       imdbID.String,
+			TMDBID:       tmdbID.String,
+			TVDBID:       tvdbID.String,
+			Collection:   collection.String,
 		}
+
+		decodeJSON(genresJSON, &e.Genres)
+		decodeJSON(studiosJSON, &e.Studios)
+		decodeJSON(tagsJSON, &e.Tags)
+		decodeJSON(castJSON, &e.Cast)
+		decodeJSON(directorsJSON, &e.Directors)
+		decodeJSON(writersJSON, &e.Writers)
 
 		result[path] = &CachedFile{
 			MTime: mtime,
@@ -127,22 +167,39 @@ func (c *DB) LoadAll() (map[string]*CachedFile, error) {
 	return result, rows.Err()
 }
 
+// upsertSQL is shared by Upsert and UpsertBatch so the column list and its
+// argument order can only ever drift together.
+const upsertSQL = `INSERT OR REPLACE INTO entries (
+	path, mtime, size, media_type_id,
+	duration, year, display, tvg_name, group_title,
+	artist, album, disc, track,
+	series, season, episode, episode_title,
+	title, sort_title, plot, tagline, poster, fanart,
+	rating, critic_rating, mpaa, country, premiered,
+	imdb_id, tmdb_id, tvdb_id, collection,
+	genres, studios, tags, cast_members, directors, writers
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+
+// upsertArgs builds the argument list for upsertSQL in column order.
+func upsertArgs(mtime, size int64, mediaTypeID int, e *models.MediaEntry) []any {
+	return []any{
+		e.Path, mtime, size, mediaTypeID,
+		e.Duration, nullStr(e.Year), e.Display, e.TVGName, e.GroupTitle,
+		nullStr(e.Artist), nullStr(e.Album), nullInt(e.Disc), nullInt(e.Track),
+		nullStr(e.Series), nullInt(e.Season), nullInt(e.Episode), nullStr(e.EpisodeTitle),
+		nullStr(e.Title), nullStr(e.SortTitle), nullStr(e.Plot), nullStr(e.Tagline),
+		nullStr(e.Poster), nullStr(e.Fanart),
+		e.Rating, e.CriticRating, nullStr(e.MPAA), nullStr(e.Country), nullStr(e.Premiered),
+		nullStr(e.IMDBID), nullStr(e.TMDBID), nullStr(e.TVDBID), nullStr(e.Collection),
+		nullJSON(e.Genres), nullJSON(e.Studios), nullJSON(e.Tags),
+		nullJSON(e.Cast), nullJSON(e.Directors), nullJSON(e.Writers),
+	}
+}
+
 // Upsert inserts or replaces a single entry in the cache.
 func (c *DB) Upsert(mtime, size int64, e *models.MediaEntry) error {
 	mediaTypeID := models.MediaTypeToInt[e.MediaType]
-	_, err := c.db.Exec(`INSERT OR REPLACE INTO entries (
-		path, mtime, size, media_type_id,
-		duration, year, display, tvg_name, group_title,
-		artist, genre, album, disc, track,
-		series, season, episode, episode_title
-	) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		e.Path, mtime, size, mediaTypeID,
-		e.Duration, nullStr(e.Year), e.Display, e.TVGName, e.GroupTitle,
-		nullStr(e.Artist), nullStr(e.Genre), nullStr(e.Album),
-		nullInt(e.Disc), nullInt(e.Track),
-		nullStr(e.Series), nullInt(e.Season), nullInt(e.Episode),
-		nullStr(e.EpisodeTitle),
-	)
+	_, err := c.db.Exec(upsertSQL, upsertArgs(mtime, size, mediaTypeID, e)...)
 	return err
 }
 
@@ -158,12 +215,7 @@ func (c *DB) UpsertBatch(files []StatEntry) error {
 		}
 	}()
 
-	stmt, err := tx.Prepare(`INSERT OR REPLACE INTO entries (
-		path, mtime, size, media_type_id,
-		duration, year, display, tvg_name, group_title,
-		artist, genre, album, disc, track,
-		series, season, episode, episode_title
-	) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+	stmt, err := tx.Prepare(upsertSQL)
 	if err != nil {
 		return err
 	}
@@ -171,15 +223,7 @@ func (c *DB) UpsertBatch(files []StatEntry) error {
 
 	for _, f := range files {
 		mediaTypeID := models.MediaTypeToInt[f.Entry.MediaType]
-		if _, err = stmt.Exec(
-			f.Entry.Path, f.MTime, f.Size, mediaTypeID,
-			f.Entry.Duration, nullStr(f.Entry.Year), f.Entry.Display,
-			f.Entry.TVGName, f.Entry.GroupTitle,
-			nullStr(f.Entry.Artist), nullStr(f.Entry.Genre), nullStr(f.Entry.Album),
-			nullInt(f.Entry.Disc), nullInt(f.Entry.Track),
-			nullStr(f.Entry.Series), nullInt(f.Entry.Season), nullInt(f.Entry.Episode),
-			nullStr(f.Entry.EpisodeTitle),
-		); err != nil {
+		if _, err = stmt.Exec(upsertArgs(f.MTime, f.Size, mediaTypeID, f.Entry)...); err != nil {
 			return err
 		}
 	}
@@ -187,19 +231,32 @@ func (c *DB) UpsertBatch(files []StatEntry) error {
 	return tx.Commit()
 }
 
-// DeleteMissing removes any cached entries whose paths are not in the
-// provided set. Called after a scan to evict deleted files.
-func (c *DB) DeleteMissing(activePaths map[string]struct{}) error {
-	encoded, err := json.Marshal(keys(activePaths))
+// DeleteMissing removes cached entries whose paths are not in the provided
+// set, scoped to the given media type IDs. Called after a scan to evict
+// deleted files. Scoping is required so a partial (per-type) scan does not
+// evict entries belonging to types that were not scanned.
+func (c *DB) DeleteMissing(activePaths map[string]struct{}, mediaTypeIDs []int) error {
+	if len(mediaTypeIDs) == 0 {
+		return nil
+	}
+
+	encodedPaths, err := json.Marshal(keys(activePaths))
 	if err != nil {
 		return err
 	}
 
-	// SQLite JSON1 — delete rows whose path isn't in the active set
+	encodedTypes, err := json.Marshal(mediaTypeIDs)
+	if err != nil {
+		return err
+	}
+
+	// SQLite JSON1 — delete rows in the scanned types whose path isn't active
 	_, err = c.db.Exec(
-		`DELETE FROM entries WHERE path NOT IN (
+		`DELETE FROM entries WHERE media_type_id IN (
 			SELECT value FROM json_each(?)
-		)`, string(encoded))
+		) AND path NOT IN (
+			SELECT value FROM json_each(?)
+		)`, string(encodedTypes), string(encodedPaths))
 	return err
 }
 
@@ -227,13 +284,30 @@ type StatEntry struct {
 // ── Schema migration ──────────────────────────────────────────────────────────
 
 func (c *DB) migrate() error {
-	// Create tables if they don't exist
-	_, err := c.db.Exec(`
+	if _, err := c.db.Exec(`
 	CREATE TABLE IF NOT EXISTS meta (
 		key   TEXT PRIMARY KEY,
 		value TEXT NOT NULL
-	);
+	);`); err != nil {
+		return err
+	}
 
+	existing := c.GetMeta("schema_version")
+	current := strconv.Itoa(schemaVersion)
+
+	// The entries table is a pure cache. On a schema change it is dropped and
+	// rebuilt rather than ALTERed: new metadata columns cannot be back-filled
+	// for files whose mtime and size are unchanged, so an additive migration
+	// would leave every existing row permanently missing the new fields.
+	if existing != "" && existing != current {
+		log.Printf("[cache] schema v%s → v%s — dropping cache, a full re-scan will follow",
+			existing, current)
+		if _, err := c.db.Exec(`DROP TABLE IF EXISTS entries`); err != nil {
+			return err
+		}
+	}
+
+	if _, err := c.db.Exec(`
 	CREATE TABLE IF NOT EXISTS entries (
 		path          TEXT PRIMARY KEY,
 		mtime         INTEGER NOT NULL,
@@ -249,7 +323,6 @@ func (c *DB) migrate() error {
 
 		-- music
 		artist        TEXT,
-		genre         TEXT,
 		album         TEXT,
 		disc          INTEGER DEFAULT 0,
 		track         INTEGER DEFAULT 0,
@@ -258,34 +331,88 @@ func (c *DB) migrate() error {
 		series        TEXT,
 		season        INTEGER DEFAULT 0,
 		episode       INTEGER DEFAULT 0,
-		episode_title TEXT
+		episode_title TEXT,
+
+		-- extended metadata
+		title         TEXT,
+		sort_title    TEXT,
+		plot          TEXT,
+		tagline       TEXT,
+		poster        TEXT,
+		fanart        TEXT,
+		rating        REAL    DEFAULT 0,
+		critic_rating INTEGER DEFAULT 0,
+		mpaa          TEXT,
+		country       TEXT,
+		premiered     TEXT,
+		imdb_id       TEXT,
+		tmdb_id       TEXT,
+		tvdb_id       TEXT,
+		collection    TEXT,
+
+		-- extended metadata, JSON-encoded arrays
+		genres        TEXT,
+		studios       TEXT,
+		tags          TEXT,
+		cast_members  TEXT,
+		directors     TEXT,
+		writers       TEXT
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_entries_media_type ON entries(media_type_id);
 	CREATE INDEX IF NOT EXISTS idx_entries_mtime      ON entries(mtime);
-	`)
-	if err != nil {
+	`); err != nil {
 		return err
 	}
 
-	// Store/verify schema version
-	existing := c.GetMeta("schema_version")
+	if err := c.SetMeta("schema_version", current); err != nil {
+		return err
+	}
+
 	if existing == "" {
-		if err := c.SetMeta("schema_version", "1"); err != nil {
-			return err
-		}
 		if err := c.SetMeta("created_at", time.Now().UTC().Format(time.RFC3339)); err != nil {
 			return err
 		}
 		log.Printf("[cache] database initialised (schema v%d)", schemaVersion)
 	} else {
-		log.Printf("[cache] database opened (schema v%s)", existing)
+		log.Printf("[cache] database opened (schema v%s)", current)
 	}
 
 	return nil
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// nullJSON marshals a slice to JSON for storage, returning NULL when empty
+// so absent values stay distinguishable from empty arrays.
+func nullJSON(v any) sql.NullString {
+	switch s := v.(type) {
+	case []string:
+		if len(s) == 0 {
+			return sql.NullString{}
+		}
+	case []models.Person:
+		if len(s) == 0 {
+			return sql.NullString{}
+		}
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: string(b), Valid: true}
+}
+
+// decodeJSON unmarshals a stored JSON column into out, ignoring NULL and
+// malformed values so one bad row cannot fail an entire cache load.
+func decodeJSON(s sql.NullString, out any) {
+	if !s.Valid || s.String == "" {
+		return
+	}
+	if err := json.Unmarshal([]byte(s.String), out); err != nil {
+		log.Printf("[cache] json decode error: %v", err)
+	}
+}
 
 func nullStr(s string) sql.NullString {
 	return sql.NullString{String: s, Valid: s != ""}
