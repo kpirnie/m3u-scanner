@@ -140,7 +140,23 @@ func siblingNFO(path string) string {
 	return strings.TrimSuffix(path, filepath.Ext(path)) + ".nfo"
 }
 
+// readNFO returns a parsed sidecar, memoised for the current scan. A nil result
+// is cached too — a missing sidecar is the common case and is otherwise probed
+// once per file in the directory.
 func readNFO(path string) (*nfoData, bool) {
+	if n, ok := fsCache.getNFO(path); ok {
+		return n, n != nil
+	}
+
+	n, ok := readNFOUncached(path)
+	if !ok {
+		n = nil
+	}
+	fsCache.putNFO(path, n)
+	return n, n != nil
+}
+
+func readNFOUncached(path string) (*nfoData, bool) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, false
@@ -320,10 +336,16 @@ func firstExisting(dir string, names []string) string {
 }
 
 func existingFile(path string) string {
-	if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
-		return path
+	if v, ok := fsCache.getFile(path); ok {
+		return v
 	}
-	return ""
+
+	resolved := ""
+	if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
+		resolved = path
+	}
+	fsCache.putFile(path, resolved)
+	return resolved
 }
 
 // setStr assigns the first non-empty candidate when the target is unset.

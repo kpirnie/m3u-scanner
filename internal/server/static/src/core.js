@@ -22,6 +22,15 @@ async function triggerRescan(type) {
     }
 }
 
+function on(id, event, handler) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener(event, handler);
+    } else {
+        console.warn('missing element: #' + id);
+    }
+}
+
 function bindToolbar() {
     document.querySelectorAll('#type-tabs .tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -38,40 +47,33 @@ function bindToolbar() {
         });
     });
 
-    document.getElementById('search').addEventListener('input', debounce(ev => {
+    on('search', 'input', debounce(ev => {
         state.query = ev.target.value;
         state.offset = 0;
         loadEntries();
     }, 300));
 
-    document.getElementById('page-size').addEventListener('change', ev => {
+    on('page-size', 'change', ev => {
         state.limit = parseInt(ev.target.value, 10);
         state.offset = 0;
         loadEntries();
     });
 
-    document.getElementById('btn-prev').addEventListener('click', () => {
+    on('btn-prev', 'click', () => {
         state.offset = Math.max(0, state.offset - state.limit);
         loadEntries();
     });
 
-    document.getElementById('btn-next').addEventListener('click', () => {
+    on('btn-next', 'click', () => {
         state.offset += state.limit;
         loadEntries();
     });
 
-    document.getElementById('btn-rescan-all').addEventListener('click', () => triggerRescan(''));
-    document.getElementById('btn-rescan-type').addEventListener('click', () => {
-        if (!state.type) {
-            triggerRescan('');
-            return;
-        }
-        triggerRescan(state.type);
-    });
-
-    document.getElementById('btn-save').addEventListener('click', saveEntry);
-    document.getElementById('btn-entry-rescan').addEventListener('click', rescanEntry);
-    document.getElementById('btn-write-tags').addEventListener('click', writeFileTags);
+    on('btn-rescan-all', 'click', () => triggerRescan(''));
+    on('btn-rescan-type', 'click', () => triggerRescan(state.type || ''));
+    on('btn-save', 'click', saveEntry);
+    on('btn-entry-rescan', 'click', rescanEntry);
+    on('btn-write-tags', 'click', writeFileTags);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

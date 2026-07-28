@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-//go:embed static/admin.html static/admin.css static/admin.js
+//go:embed static/index.html static/admin.css static/admin.js
 var staticFS embed.FS
 
 // adminAssets returns the embedded admin interface asset tree rooted at the

@@ -95,6 +95,7 @@ func main() {
 
 		playlists := writer.BuildAll(all, cfg.BaseURL)
 		srv.UpdatePlaylist(playlists, len(all))
+		srv.SetEntries(all)
 
 		_ = cacheDB.SetMeta("last_scan", time.Now().UTC().Format(time.RFC3339))
 
@@ -138,6 +139,7 @@ func main() {
 
 		playlists := writer.BuildAll(all, cfg.BaseURL)
 		srv.UpdatePlaylist(playlists, len(all))
+		srv.SetEntries(all)
 
 		log.Printf("[main] re-enriched %s", entry.Path)
 		return nil

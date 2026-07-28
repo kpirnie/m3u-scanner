@@ -16,54 +16,54 @@ type Person struct {
 // from the folder structure and enriched by tag/ffprobe libraries.
 type MediaEntry struct {
 	// ── Required ──────────────────────────────────────────────────────────────
-	Path       string // absolute filesystem path
-	MediaType  string // "music" | "images" | "movies" | "shows"
-	GroupTitle string // written as group-title= in M3U (same as MediaType)
-	TVGName    string // written as tvg-name= in M3U
-	Display    string // label after the comma on #EXTINF
+	Path       string `json:"path"`
+	MediaType  string `json:"media_type"`
+	GroupTitle string `json:"group_title"`
+	TVGName    string `json:"tvg_name"`
+	Display    string `json:"display"`
 
 	// ── Common ────────────────────────────────────────────────────────────────
-	Duration int    // seconds; -1 = unknown
-	Year     string // optional
+	Duration int    `json:"duration"`
+	Year     string `json:"year"`
 
 	// ── Music ─────────────────────────────────────────────────────────────────
-	Artist string
-	Album  string
-	Disc   int // 0 = not set
-	Track  int // 0 = not set
+	Artist string `json:"artist"`
+	Album  string `json:"album"`
+	Disc   int    `json:"disc"`
+	Track  int    `json:"track"`
 
 	// ── Shows ─────────────────────────────────────────────────────────────────
-	Series       string
-	Season       int // 0 = not set
-	Episode      int // 0 = not set
-	EpisodeTitle string
+	Series       string `json:"series"`
+	Season       int    `json:"season"`
+	Episode      int    `json:"episode"`
+	EpisodeTitle string `json:"episode_title"`
 
 	// ── Extended metadata ─────────────────────────────────────────────────────
 	// Sourced from NFO sidecars; all optional.
-	Title        string  // canonical title, independent of filename
-	SortTitle    string  // title used for ordering when it differs
-	Plot         string  // long synopsis
-	Tagline      string  // short one-liner
-	Poster       string  // artwork URL or path; written as tvg-logo=
-	Fanart       string  // backdrop URL or path
-	Rating       float64 // 0 = not set
-	CriticRating int     // 0 = not set
-	MPAA         string  // content rating, e.g. "PG-13"
-	Country      string
-	Premiered    string // YYYY-MM-DD
-	IMDBID       string
-	TMDBID       string
-	TVDBID       string
-	Collection   string   // box set / collection name
-	Genres       []string // multi-value; replaces the former single Genre
-	Studios      []string
-	Tags         []string
-	Directors    []string
-	Writers      []string
-	Cast         []Person
+	Title        string   `json:"title"`
+	SortTitle    string   `json:"sort_title"`
+	Plot         string   `json:"plot"`
+	Tagline      string   `json:"tagline"`
+	Poster       string   `json:"poster"`
+	Fanart       string   `json:"fanart"`
+	Rating       float64  `json:"rating"`
+	CriticRating int      `json:"critic_rating"`
+	MPAA         string   `json:"mpaa"`
+	Country      string   `json:"country"`
+	Premiered    string   `json:"premiered"`
+	IMDBID       string   `json:"imdb_id"`
+	TMDBID       string   `json:"tmdb_id"`
+	TVDBID       string   `json:"tvdb_id"`
+	Collection   string   `json:"collection"`
+	Genres       []string `json:"genres"`
+	Studios      []string `json:"studios"`
+	Tags         []string `json:"tags"`
+	Directors    []string `json:"directors"`
+	Writers      []string `json:"writers"`
+	Cast         []Person `json:"cast"`
 
 	// ── Sort ──────────────────────────────────────────────────────────────────
-	sortKey string // computed once, used for stable ordering
+	sortKey string
 }
 
 // SortKey returns a pre-computed string that produces correct ordering when

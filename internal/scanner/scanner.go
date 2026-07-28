@@ -51,6 +51,9 @@ func (s *Scanner) Scan() ([]*models.MediaEntry, error) {
 // Cache eviction is scoped to the scanned types, so entries for types not
 // included here are left intact.
 func (s *Scanner) ScanTypes(types []string) ([]*models.MediaEntry, error) {
+
+	meta.ResetFSCache()
+
 	// Load entire cache upfront — one DB round trip
 	cached, err := s.Cache.LoadAll()
 	if err != nil {
@@ -99,6 +102,9 @@ func (s *Scanner) ScanTypes(types []string) ([]*models.MediaEntry, error) {
 // cache. Used after a metadata edit so one changed sidecar does not require a
 // walk of the entire library. Returns the rebuilt entry.
 func (s *Scanner) ScanPath(path string) (*models.MediaEntry, error) {
+
+	meta.ResetFSCache()
+
 	mediaType, typeRoot, err := s.resolveTypeForPath(path)
 	if err != nil {
 		return nil, err
