@@ -87,11 +87,12 @@ function buildForm(e) {
         '<button id="btn-add-cast" class="btn-secondary text-sm mt-1">Add Cast Member</button>' +
         '</div>';
 
+    html += field('Poster URL or path', 'poster', e.poster || '');
+    html += field('Fanart URL or path', 'fanart', e.fanart || '');
+
     html += '<div class="md:col-span-2 pt-2 border-t border-kptv-border">' +
         '<div class="metric-row"><span class="text-gray-400 text-sm">Path</span>' +
         '<span class="text-xs text-gray-500 text-truncate max-w-lg">' + escapeHtml(e.path) + '</span></div>' +
-        '<div class="metric-row"><span class="text-gray-400 text-sm">Poster</span>' +
-        '<span class="text-xs text-gray-500 text-truncate max-w-lg">' + escapeHtml(e.poster || '—') + '</span></div>' +
         '</div>';
 
     html += '</div>';

@@ -250,10 +250,11 @@ func buildNFOOut(e *models.MediaEntry) *nfoOut {
 }
 
 // relativeArt shortens an artwork path to a bare filename when it sits beside
-// the media file, keeping the sidecar portable across mount points.
+// the media file, keeping the sidecar portable across mount points. Remote URLs
+// are written verbatim.
 func relativeArt(mediaPath, art string) string {
-	if art == "" {
-		return ""
+	if art == "" || isRemoteURL(art) {
+		return art
 	}
 	if filepath.Dir(art) == filepath.Dir(mediaPath) {
 		return filepath.Base(art)

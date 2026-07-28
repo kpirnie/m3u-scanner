@@ -25,7 +25,8 @@ type entrySummary struct {
 	Series    string `json:"series"`
 	Season    int    `json:"season"`
 	Episode   int    `json:"episode"`
-	HasPoster bool   `json:"has_poster"`
+	Poster    string `json:"poster"`
+	Fanart    string `json:"fanart"`
 	HasNFO    bool   `json:"has_nfo"`
 }
 
@@ -47,6 +48,8 @@ type entryEdit struct {
 	IMDBID       string          `json:"imdb_id"`
 	TMDBID       string          `json:"tmdb_id"`
 	TVDBID       string          `json:"tvdb_id"`
+	Poster       string          `json:"poster"`
+	Fanart       string          `json:"fanart"`
 	Genres       []string        `json:"genres"`
 	Studios      []string        `json:"studios"`
 	Tags         []string        `json:"tags"`
@@ -232,6 +235,8 @@ func applyEdit(e *models.MediaEntry, in *entryEdit) {
 	e.IMDBID = in.IMDBID
 	e.TMDBID = in.TMDBID
 	e.TVDBID = in.TVDBID
+	e.Poster = strings.TrimSpace(in.Poster)
+	e.Fanart = strings.TrimSpace(in.Fanart)
 	e.Genres = cleanList(in.Genres)
 	e.Studios = cleanList(in.Studios)
 	e.Tags = cleanList(in.Tags)
@@ -293,9 +298,23 @@ func summarise(e *models.MediaEntry) entrySummary {
 		Series:    e.Series,
 		Season:    e.Season,
 		Episode:   e.Episode,
-		HasPoster: e.Poster != "",
+		Poster:    artURL(e.Poster),
+		Fanart:    artURL(e.Fanart),
 		HasNFO:    e.Title != "" || e.Plot != "",
 	}
+}
+
+// artURL returns a browser-resolvable location for an artwork value. Remote
+// URLs pass through; local paths are already absolute and are served verbatim
+// by the /media/ file handler.
+func artURL(path string) string {
+	if path == "" {
+		return ""
+	}
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		return path
+	}
+	return path
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

@@ -4,7 +4,7 @@ const state = {
     type: '',
     query: '',
     offset: 0,
-    limit: 100,
+    limit: 50,
     total: 0
 };
 
@@ -21,20 +21,27 @@ function subtitleFor(item) {
     return item.year || '';
 }
 
+function thumb(url, label) {
+    if (!url) return '';
+    return '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(label) + '" loading="lazy" ' +
+        'class="w-10 h-14 object-cover rounded border border-kptv-border cursor-pointer hover:border-kptv-blue-light transition-colors" ' +
+        'data-art="' + escapeHtml(url) + '">';
+}
+
 function renderEntry(item) {
     const nfoDot = item.has_nfo ? 'status-active' : 'status-warning';
-    const posterIcon = item.has_poster
-        ? '<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>'
-        : '<svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M4 16l4.586-4.586a2 2 0 012.828 0M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>';
 
     return '<div class="entry-item flex items-center gap-4">' +
         '<span class="status-indicator ' + nfoDot + '" title="Sidecar metadata"></span>' +
+        '<div class="flex gap-2 shrink-0">' +
+        thumb(item.poster, 'Poster') +
+        thumb(item.fanart, 'Fanart') +
+        '</div>' +
         '<div class="flex-1 min-w-0">' +
         '<div class="font-medium text-truncate">' + escapeHtml(item.title || item.display) + '</div>' +
         '<div class="text-sm text-gray-400 text-truncate">' + escapeHtml(subtitleFor(item)) + '</div>' +
         '</div>' +
         '<span class="stat-badge">' + escapeHtml(item.media_type) + '</span>' +
-        posterIcon +
         '<button class="btn-secondary text-sm" data-edit="' + escapeHtml(item.id) + '">Edit</button>' +
         '</div>';
 }
@@ -59,6 +66,12 @@ async function loadEntries() {
             list.innerHTML = data.items.map(renderEntry).join('');
             list.querySelectorAll('[data-edit]').forEach(btn => {
                 btn.addEventListener('click', () => openEditor(btn.dataset.edit));
+            });
+            list.querySelectorAll('[data-art]').forEach(img => {
+                img.addEventListener('click', () => {
+                    document.getElementById('art-modal-img').src = img.dataset.art;
+                    showModal('art-modal');
+                });
             });
         }
 

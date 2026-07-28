@@ -279,12 +279,15 @@ func applyNFO(e *models.MediaEntry, n *nfoData) {
 	setStr(&e.Fanart, resolveArtPath(e.Path, n.Art.Fanart))
 }
 
-// resolveArtPath converts an <art> value to an absolute local path, discarding
-// remote URLs and any path that does not exist on disk.
+// resolveArtPath normalises an <art> value. Remote URLs pass through unchanged;
+// local paths are made absolute and discarded when they do not exist on disk.
 func resolveArtPath(mediaPath, art string) string {
 	art = strings.TrimSpace(art)
-	if art == "" || strings.Contains(art, "://") {
+	if art == "" {
 		return ""
+	}
+	if isRemoteURL(art) {
+		return art
 	}
 	if !filepath.IsAbs(art) {
 		art = filepath.Join(filepath.Dir(mediaPath), art)
@@ -293,6 +296,11 @@ func resolveArtPath(mediaPath, art string) string {
 		return ""
 	}
 	return art
+}
+
+// isRemoteURL reports whether the value is an http(s) URL rather than a path.
+func isRemoteURL(s string) bool {
+	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
 }
 
 // findArtwork probes for sibling poster and backdrop images when the .nfo did

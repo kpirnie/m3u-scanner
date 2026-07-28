@@ -173,7 +173,7 @@ func sanitize(s string) string {
 }
 
 func formatPath(absPath, baseURL string) string {
-	if baseURL == "" {
+	if baseURL == "" || strings.HasPrefix(absPath, "http://") || strings.HasPrefix(absPath, "https://") {
 		return absPath
 	}
 	return baseURL + absPath
